@@ -114,7 +114,7 @@ void PathBar::mousePressEvent(QMouseEvent* event) {
         openEditor();
     }
     else if(event->button() == Qt::MiddleButton) {
-        PathButton* btn = qobject_cast<PathButton*>(childAt(event->x(), event->y()));
+        PathButton* btn = qobject_cast<PathButton*>(childAt(event->position().toPoint()));
         if(btn != nullptr) {
             scrollArea_->ensureWidgetVisible(btn,
                                              1); // a harmless compensation for a miscalculation in Qt

@@ -49,16 +49,14 @@ public:
 
   QModelIndex indexAt(const QPoint & point) const override;
 
+  QStyleOptionViewItem getViewOptions();
+
   inline void setPositionForIndex(const QPoint & position, const QModelIndex & index) {
     QListView::setPositionForIndex(position, index);
   }
 
   inline QRect rectForIndex(const QModelIndex & index) const {
     return QListView::rectForIndex(index);
-  }
-
-  inline QStyleOptionViewItem getViewOptions() {
-    return viewOptions();
   }
 
   inline bool cursorOnSelectionCorner() const {

@@ -92,16 +92,6 @@ QPixmap IconEngine::pixmap(const QSize& size, QIcon::Mode mode, QIcon::State sta
 void IconEngine::virtual_hook(int id, void* data) {
     auto info = info_.lock();
     switch(id) {
-    case QIconEngine::AvailableSizesHook: {
-        auto* args = reinterpret_cast<QIconEngine::AvailableSizesArgument*>(data);
-        args->sizes = info ? info->internalQicon().availableSizes(args->mode, args->state) : QList<QSize>{};
-        break;
-    }
-    case QIconEngine::IconNameHook: {
-        QString* result = reinterpret_cast<QString*>(data);
-        *result = info ? info->internalQicon().name() : QString{};
-        break;
-    }
     case QIconEngine::IsNullHook: {
         bool* result = reinterpret_cast<bool*>(data);
         *result = info ? info->internalQicon().isNull() : true;

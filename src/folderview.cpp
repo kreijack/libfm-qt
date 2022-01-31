@@ -45,7 +45,6 @@
 #include <QTextEdit>
 #include <QWidgetAction> // for detailed list header context menu
 #include <QLabel> // for detailed list header context menu
-#include <QX11Info> // for XDS support
 #include <xcb/xcb.h> // for XDS support
 #include "xdndworkaround.h" // for XDS support
 #include "folderview_p.h"
@@ -97,7 +96,7 @@ void FolderViewListView::mousePressEvent(QMouseEvent* event) {
     if(event->buttons() == Qt::LeftButton) { // see FolderViewListView::mouseMoveEvent
         mouseLeftPressed_ = true;
         if(indexAt(event->pos()).isValid()) {
-            globalItemPressPoint_ = event->globalPos();
+            globalItemPressPoint_ = event->globalPosition().toPoint();
         }
         else {
             globalItemPressPoint_ = QPoint();
@@ -144,7 +143,7 @@ void FolderViewListView::mouseMoveEvent(QMouseEvent* event) {
                 && (!mouseLeftPressed_
                     // don't start drag if the cursor isn't moved since pressing left mouse button on an item
                     // (because the user may want to scroll the view with mouse wheel before dragging)
-                    || (globalItemPressPoint_ - event->globalPos()).manhattanLength() <= QApplication::startDragDistance())))) {
+                    || (globalItemPressPoint_ - event->globalPosition().toPoint()).manhattanLength() <= QApplication::startDragDistance())))) {
         bool cursorOnSelectionCorner = cursorOnSelectionCorner_;
         QListView::mouseMoveEvent(event);
         // update the index if the cursor enters/leaves the selection corner icon
@@ -334,6 +333,53 @@ void FolderViewListView::selectAll() {
     }
 }
 
+// "viewOptions()" doesn't exist in Qt6. This method exactly does what it did in Qt5.
+QStyleOptionViewItem FolderViewListView::getViewOptions() {
+    QStyleOptionViewItem option;
+    option.initFrom(this);
+    option.state &= ~QStyle::State_MouseOver;
+    option.font = font();
+    if(!hasFocus()) {
+        option.state &= ~QStyle::State_Active;
+    }
+    option.state &= ~QStyle::State_HasFocus;
+    option.decorationAlignment = Qt::AlignCenter;
+    option.textElideMode = textElideMode();
+    option.locale = locale();
+    option.locale.setNumberOptions(QLocale::OmitGroupSeparator);
+    option.widget = this;
+
+    if(!iconSize().isValid()) {
+        int pm = (viewMode() == QListView::ListMode
+                  ? style()->pixelMetric(QStyle::PM_ListViewIconSize, nullptr, this)
+                  : style()->pixelMetric(QStyle::PM_IconViewIconSize, nullptr, this));
+        option.decorationSize = QSize(pm, pm);
+    }
+    else {
+        option.decorationSize = iconSize();
+    }
+
+    if(viewMode() == QListView::IconMode) {
+        option.showDecorationSelected = false;
+        option.decorationPosition = QStyleOptionViewItem::Top;
+        option.displayAlignment = Qt::AlignCenter;
+    }
+    else {
+        option.showDecorationSelected = style()->styleHint(QStyle::SH_ItemView_ShowDecorationSelected, nullptr, this);
+        option.decorationPosition = QStyleOptionViewItem::Left;
+        option.displayAlignment = Qt::AlignLeft|Qt::AlignVCenter;
+    }
+
+    if(gridSize().isValid()) {
+        option.rect.setSize(gridSize());
+    }
+    else {
+        option.rect = QRect();
+    }
+
+    return option;
+}
+
 //-----------------------------------------------------------------------------
 
 FolderViewTreeView::FolderViewTreeView(QWidget* parent):
@@ -495,7 +541,7 @@ void FolderViewTreeView::paintEvent(QPaintEvent * event) {
 
 void FolderViewTreeView::mousePressEvent(QMouseEvent* event) {
     if(event->buttons() == Qt::LeftButton) { // see FolderViewTreeView::mouseMoveEvent
-        globalItemPressPoint_ = event->globalPos();
+        globalItemPressPoint_ = event->globalPosition().toPoint();
     }
     if(selectionMode() == QAbstractItemView::ExtendedSelection) {
         // remember mouse press position and determine whether selections should be kept
@@ -552,7 +598,7 @@ void FolderViewTreeView::mouseMoveEvent(QMouseEvent* event) {
             // don't start drag if the cursor isn't moved since pressing left mouse button on an item
             // because the user may want to scroll the view with mouse wheel before dragging
             if(!(event->buttons() == Qt::LeftButton
-                 && (globalItemPressPoint_ - event->globalPos()).manhattanLength() <= QApplication::startDragDistance())) {
+                 && (globalItemPressPoint_ - event->globalPosition().toPoint()).manhattanLength() <= QApplication::startDragDistance())) {
                 QTreeView::mouseMoveEvent(event);
             }
         }
@@ -879,7 +925,7 @@ FolderView::FolderView(FolderView::ViewMode _mode, QWidget *parent):
     iconSize_[DetailedListMode - FirstViewMode] = QSize(24, 24);
 
     QVBoxLayout* layout = new QVBoxLayout();
-    layout->setMargin(0);
+    layout->setContentsMargins(0, 0, 0, 0);
     setLayout(layout);
 
     setViewMode(_mode);
@@ -1537,7 +1583,7 @@ void FolderView::childDragLeaveEvent(QDragLeaveEvent* e) {
 void FolderView::childDragMoveEvent(QDragMoveEvent* e) {
     // Since it isn't possible to drop on a file (see "FolderModel::dropMimeData()"),
     // we enable the drop indicator only when the cursor is on a folder.
-    QModelIndex index = view->indexAt(e->pos());
+    QModelIndex index = view->indexAt(e->position().toPoint());
     if(index.isValid() && index.model()) {
         QVariant data = index.model()->data(index, FolderModel::FileInfoRole);
         auto info = data.value<std::shared_ptr<const Fm::FileInfo>>();
@@ -1555,7 +1601,7 @@ void FolderView::childDropEvent(QDropEvent* e) {
     // NOTE: in theory, it's not possible to implement XDS with pure Qt.
     // We achieved this with some dirty XCB/XDND workarounds.
     // Please refer to XdndWorkaround::clientMessage() in xdndworkaround.cpp for details.
-    if(QX11Info::isPlatformX11() && e->mimeData()->hasFormat(QStringLiteral("XdndDirectSave0"))) {
+    if(QGuiApplication::platformName() == QStringLiteral("xcb") && e->mimeData()->hasFormat(QStringLiteral("XdndDirectSave0"))) {
         e->setDropAction(Qt::CopyAction);
         const QWidget* targetWidget = childView()->viewport();
         // these are dynamic QObject property set by our XDND workarounds in xdndworkaround.cpp.
@@ -1572,7 +1618,7 @@ void FolderView::childDropEvent(QDropEvent* e) {
             // 2. construct the fill URI for the file, and update the source window property.
             Fm::FilePath filePath;
             if(model_) {
-                QModelIndex index = view->indexAt(e->pos());
+                QModelIndex index = view->indexAt(e->position().toPoint());
                 auto info = model_->fileInfoFromIndex(index);
                 if(info && info->isDir()) {
                     filePath = info->path().child(basename.constData());
@@ -1594,13 +1640,13 @@ void FolderView::childDropEvent(QDropEvent* e) {
         return;
     }
 
-    if(e->keyboardModifiers() == Qt::NoModifier) {
+    if(e->modifiers() == Qt::NoModifier) {
         // if no key modifiers are used, popup a menu
         // to ask the user for the action he/she wants to perform.
         Qt::DropActions actions = Qt::IgnoreAction;
         std::shared_ptr<const Fm::FileInfo> info = nullptr;
         if(model_) {
-            QModelIndex index = view->indexAt(e->pos());
+            QModelIndex index = view->indexAt(e->position().toPoint());
             info = model_->fileInfoFromIndex(index);
         }
         if(!info || !info->isDir()) {
@@ -1636,7 +1682,7 @@ bool FolderView::eventFilter(QObject* watched, QEvent* event) {
             // activate items on single click
             if(style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick)) {
                 QHoverEvent* hoverEvent = static_cast<QHoverEvent*>(event);
-                QModelIndex index = view->indexAt(hoverEvent->pos()); // find out the hovered item
+                QModelIndex index = view->indexAt(hoverEvent->position().toPoint()); // find out the hovered item
                 if(index.isValid()) { // change the cursor to a hand when hovering on an item
                     setCursor(Qt::PointingHandCursor);
                 }

@@ -62,7 +62,7 @@ const QString &FolderModelItem::displayMtime() const {
         }
         else {
             auto mtime = QDateTime::fromMSecsSinceEpoch(info->mtime() * 1000);
-            dispMtime_ = mtime.toString(Qt::SystemLocaleShortDate);
+            dispMtime_ = QLocale().toString(mtime, QLocale::ShortFormat);
         }
     }
     return dispMtime_;
@@ -75,7 +75,7 @@ const QString &FolderModelItem::displayCrtime() const {
         }
         else {
             auto crtime = QDateTime::fromMSecsSinceEpoch(info->crtime() * 1000);
-            dispCrtime_ = crtime.toString(Qt::SystemLocaleShortDate);
+            dispCrtime_ = QLocale().toString(crtime, QLocale::ShortFormat);
         }
     }
     return dispCrtime_;
@@ -83,8 +83,8 @@ const QString &FolderModelItem::displayCrtime() const {
 
 const QString &FolderModelItem::displayDtime() const {
     if(dispDtime_.isEmpty() && info->dtime() > 0) {
-        auto mtime = QDateTime::fromMSecsSinceEpoch(info->dtime() * 1000);
-        dispDtime_ = mtime.toString(Qt::SystemLocaleShortDate);
+        auto dtime = QDateTime::fromMSecsSinceEpoch(info->dtime() * 1000);
+        dispDtime_ = QLocale().toString(dtime, QLocale::ShortFormat);
     }
     return dispDtime_;
 }
