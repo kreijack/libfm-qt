@@ -51,6 +51,10 @@ public:
 
     QPixmap pixmap(const QSize& size, QIcon::Mode mode, QIcon::State state) override;
 
+    QString iconName() override;
+    bool isNull() override;
+    QPixmap scaledPixmap(const QSize &size, QIcon::Mode mode, QIcon::State state, qreal scale) override;
+    QList<QSize> availableSizes(QIcon::Mode mode, QIcon::State state) override;
     void virtual_hook(int id, void* data) override;
 
 private:
@@ -87,6 +91,26 @@ void IconEngine::paint(QPainter* painter, const QRect& rect, QIcon::Mode mode, Q
 QPixmap IconEngine::pixmap(const QSize& size, QIcon::Mode mode, QIcon::State state) {
     auto info = info_.lock();
     return info ? info->internalQicon().pixmap(size, mode, state) : QPixmap{};
+}
+
+QString IconEngine::iconName() {
+    auto info = info_.lock();
+    return info ? info->internalQicon().name() : QString{};
+}
+
+bool IconEngine::isNull() {
+    auto info = info_.lock();
+    return info ? info->internalQicon().isNull() : true;
+}
+
+QPixmap IconEngine::scaledPixmap(const QSize &size, QIcon::Mode mode, QIcon::State state, qreal /*scale*/) {
+    auto info = info_.lock();
+    return info ? info->internalQicon().pixmap(size, mode, state) : QPixmap{};
+}
+
+QList<QSize> IconEngine::availableSizes(QIcon::Mode mode, QIcon::State state) {
+    auto info = info_.lock();
+    return info ? info->internalQicon().availableSizes(mode, state) : QList<QSize>{};
 }
 
 void IconEngine::virtual_hook(int id, void* data) {
