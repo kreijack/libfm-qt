@@ -22,7 +22,6 @@
 #include <iostream>
 #include <algorithm>
 #include <QtAlgorithms>
-#include <QVector>
 #include <qmimedata.h>
 #include <QMimeData>
 #include <QByteArray>

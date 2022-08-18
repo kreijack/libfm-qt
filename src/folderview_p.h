@@ -105,7 +105,7 @@ public:
 
   void rowsInserted(const QModelIndex& parent,int start, int end) override;
   void rowsAboutToBeRemoved(const QModelIndex& parent,int start, int end) override;
-  void dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles = QVector<int>{}) override;
+  void dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QList<int>& roles = QList<int>{}) override;
   void reset() override;
 
   void resizeEvent(QResizeEvent* event) override;

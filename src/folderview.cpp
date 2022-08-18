@@ -822,7 +822,7 @@ void FolderViewTreeView::rowsAboutToBeRemoved(const QModelIndex& parent, int sta
     queueLayoutColumns();
 }
 
-void FolderViewTreeView::dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QVector<int>& roles /*= QVector<int>{}*/) {
+void FolderViewTreeView::dataChanged(const QModelIndex& topLeft, const QModelIndex& bottomRight, const QList<int>& roles /*= QList<int>{}*/) {
     QTreeView::dataChanged(topLeft, bottomRight, roles);
     // FIXME: this will be very inefficient
     // queueLayoutColumns();
