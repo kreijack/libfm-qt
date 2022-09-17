@@ -1655,7 +1655,7 @@ void FolderView::childDropEvent(QDropEvent* e) {
         if(info && info->isWritableDirectory() && info->isWritable()) {
             actions = e->possibleActions();
         }
-        Qt::DropAction action = DndActionMenu::askUser(actions, view->viewport()->mapToGlobal(e->pos()));
+        Qt::DropAction action = DndActionMenu::askUser(actions, view->viewport()->mapToGlobal(e->position()).toPoint());
         e->setDropAction(action);
     }
 }
